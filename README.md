@@ -81,11 +81,15 @@ The script provides:
 ## Example Output
 
 Step   1 | chosen: 'A'                  ids=[1065] ✓ (actual: 1065)  (logp=-0.0053 p= 99.47%)
-  candidates:
-     1. * 'A'                  ids=[1065]  logp=-0.0053 p= 99.47%
-     2.   '"A'                 ids=[93192]  logp=-5.3803 p=  0.46%
-     3.   '"'                  ids=[1034]  logp=-7.7553 p=  0.04%
 
+  candidates:
+
+     1. * 'A'                  ids=[1065]  logp=-0.0053 p= 99.47%
+     
+     2.   '"A'                 ids=[93192]  logp=-5.3803 p=  0.46%
+     
+     3.   '"'                  ids=[1034]  logp=-7.7553 p=  0.04%
+     
 ## Limitations
 
 - Requires vLLM server with logprobs support
