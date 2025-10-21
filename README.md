@@ -80,16 +80,58 @@ The script provides:
 
 ## Example Output
 
+```
+----------------------------------------------------------------------------------------------------
+Configuration:
+  Seed: 42, Temperature: 0.7, Top-p: 0.9
+  Top-k: (disabled)
+  Max new tokens: 64
+  Server model: /models/current/mistralai_Mistral-Small-3.2-24B-Instruct-2506
+  Tokenizer modes: prompt=messages(user), completion=prompt(fallback)
+  Note: completion tokenization fell back to 'prompt' form
+----------------------------------------------------------------------------------------------------
+PROMPT:
+In a single sentence, what is a cat?
+----------------------------------------------------------------------------------------------------
+PROMPT TOKEN IDs:
+[1, 3, 1785, 1261, 4249, 19286, 1044, 2549, 1395, 1261, 7990, 1063, 4]
+----------------------------------------------------------------------------------------------------
+COMPLETION:
+A cat is a small, carnivorous mammal known for its agility, independence, and often domesticated companionship.
+----------------------------------------------------------------------------------------------------
+COMPLETION TOKEN IDs:
+[1, 1065, 7990, 1395, 1261, 3709, 1044, 66067, 1354, 28708, 21008, 1279, 4629, 1394, 2246, 1984, 2557, 1044, 25760, 1044, 1321, 5153, 42479, 12500, 69114, 3218, 1046]
+----------------------------------------------------------------------------------------------------
+Logprob steps: 27, Completion tokens (without BOS): 26
+Note: Step count (27) differs from token count (26)
+----------------------------------------------------------------------------------------------------
+Per-token candidate breakdown:
+----------------------------------------------------------------------------------------------------
 Step   1 | chosen: 'A'                  ids=[1065] ✓ (actual: 1065)  (logp=-0.0053 p= 99.47%)
-
   candidates:
-
      1. * 'A'                  ids=[1065]  logp=-0.0053 p= 99.47%
-     
      2.   '"A'                 ids=[93192]  logp=-5.3803 p=  0.46%
-     
      3.   '"'                  ids=[1034]  logp=-7.7553 p=  0.04%
-     
+     4.   '*A'                 ids=[64586]  logp=-8.8803 p=  0.01%
+     5.   'In'                 ids=[1785]  logp=-10.2553 p=  0.00%
+----------------------------------------------------------------------------------------------------
+Step   2 | chosen: ' cat'               ids=[7990] ✓ (actual: 7990)  (logp=-0.0007 p= 99.93%)
+  candidates:
+     1. * ' cat'               ids=[7990]  logp=-0.0007 p= 99.93%
+     2.   ' **'                ids=[1603]  logp=-8.7507 p=  0.02%
+     3.   ' domestic'          ids=[20159]  logp=-8.8757 p=  0.01%
+     4.   ' domest'            ids=[42479]  logp=-9.7507 p=  0.01%
+     5.   ' highly'            ids=[9210]  logp=-9.8757 p=  0.01%
+----------------------------------------------------------------------------------------------------
+Step   3 | chosen: ' is'                ids=[1395] ✓ (actual: 1395)  (logp=-0.0001 p= 99.99%)
+  candidates:
+     1. * ' is'                ids=[1395]  logp=-0.0001 p= 99.99%
+     2.   ' ('                 ids=[1319]  logp=-9.0001 p=  0.01%
+     3.   ' (*'                ids=[3052]  logp=-11.2501 p=  0.00%
+     4.   ','                  ids=[1044]  logp=-12.0001 p=  0.00%
+     5.   ' can'               ids=[1710]  logp=-13.7501 p=  0.00%
+```
+
 ## Limitations
 
 - Requires vLLM server with logprobs support
