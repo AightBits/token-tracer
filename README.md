@@ -36,13 +36,21 @@ python3 token_tracer.py --prompt="What is machine learning?" --seed=42
 ### Command Line Options
 
 --base-url: vLLM server URL (default: http://localhost:8000)
+
 --max-new-tokens: Maximum tokens to generate (default: 64)
+
 --temperature: Sampling temperature (default: 0.7)
+
 --top-p: Top-p nucleus sampling (default: 0.9)
+
 --top-k: Top-k sampling (-1 to disable, default: -1)
+
 --seed: Random seed for reproducibility (default: 42)
+
 --top-logprobs: Number of candidate tokens to display per step (default: 5)
+
 --prompt: Input prompt text
+
 --max-print-tokens: Limit tokens displayed (0 for all, default: 0)
 
 ## Output
