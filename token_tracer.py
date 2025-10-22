@@ -60,6 +60,7 @@ def main():
     ap.add_argument("--top-logprobs", type=int, default=5, help="Candidate tokens to display per step")
     ap.add_argument("--prompt", default="In a single sentence, what is a cat?", help="Prompt text")
     ap.add_argument("--max-print-tokens", type=int, default=0, help="Limit tokens to print (0=all)")
+    ap.add_argument("--api-key", default="EMPTY", help="API key for authorization")
     args = ap.parse_args()
 
     # Use session for connection pooling
@@ -96,8 +97,11 @@ def main():
         body = {"prompt": text}
         if model:
             body["model"] = model
-        data, used = _try_tokenize(base_url, headers, body)
-        return data, used, "prompt(fallback)"
+        try:
+            data, used = _try_tokenize(base_url, headers, body)
+            return data, used, "prompt(fallback)"
+        except requests.HTTPError as e:
+            raise RuntimeError(f"Tokenization failed for text: {repr(text)}") from e
 
     def get_single_token_ids(base_url: str, headers: dict, model: str | None, text: str):
         """Get token IDs for a single token, handling BOS token properly"""
@@ -113,7 +117,7 @@ def main():
         return token_ids
 
     chat_url = f"{args.base_url}/v1/chat/completions"
-    headers = {"Content-Type": "application/json", "Authorization": "Bearer EMPTY"}
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {args.api_key}"}
     
     # Build payload
     payload = {
@@ -130,6 +134,9 @@ def main():
 
     # Request completion
     data = post_json(chat_url, payload, headers)
+    if not data.get("choices"):
+        raise RuntimeError("No choices returned in completion response")
+    
     choice = data["choices"][0]
     final_text = choice["message"].get("content", "") or ""
     model_name = data.get("model") or choice.get("model") or None
@@ -180,12 +187,15 @@ def main():
     # Per-token breakdown with cached tokenization
     steps = choice.get("logprobs", {}).get("content") or []
     
-    # Remove BOS token from completion tokens for proper alignment
-    completion_tokens_without_bos = out_token_ids[1:] if out_token_ids and out_token_ids[0] == 1 else out_token_ids
+    completion_tokens_without_bos = out_token_ids
+    if out_token_ids and out_token_ids[0] == 1:
+        completion_tokens_without_bos = out_token_ids[1:]
     
-    print(f"Logprob steps: {len(steps)}, Completion tokens (without BOS): {len(completion_tokens_without_bos)}")
-    if len(steps) != len(completion_tokens_without_bos):
-        print(f"Note: Step count ({len(steps)}) differs from token count ({len(completion_tokens_without_bos)})")
+    non_empty_steps = [step for step in steps if step.get("token", "") != ""]
+    
+    print(f"Logprob steps: {len(steps)} ({len(non_empty_steps)} non-empty), Completion tokens (without BOS): {len(completion_tokens_without_bos)}")
+    if len(non_empty_steps) != len(completion_tokens_without_bos):
+        print(f"Note: Non-empty step count ({len(non_empty_steps)}) differs from token count ({len(completion_tokens_without_bos)})")
     print_separator()
     print("Per-token candidate breakdown:")
     print_separator()
@@ -195,11 +205,25 @@ def main():
         tok_lp = step.get("logprob", float("-inf"))
         tok_ids = cached_get_single_token_ids(tok_text)
         
-        # Get the actual token ID from completion (aligned properly)
-        actual_id = completion_tokens_without_bos[idx] if idx < len(completion_tokens_without_bos) else "N/A"
+        if tok_text == "":
+            print(f"Step {idx + 1:>3} | [EOS/STOP]            ids={tok_ids} E (actual: EOS)  ({fmt_prob(tok_lp)})")
+            print("  candidates:")
+            cands_sorted = sorted(step.get("top_logprobs", []), key=lambda c: c["logprob"], reverse=True)
+            for rank, cand in enumerate(cands_sorted[:args.top_logprobs], start=1):
+                ct = cand["token"]
+                clp = cand["logprob"]
+                c_ids = cached_get_single_token_ids(ct)
+                marker = "*" if ct == tok_text else " "
+                print(f"    {rank:>2}. {marker} {repr(ct):<20} ids={c_ids}  {fmt_prob(clp)}")
+            print_separator()
+            continue
         
-        # Verify alignment
-        alignment_ok = (len(tok_ids) == 1 and tok_ids[0] == actual_id) if idx < len(completion_tokens_without_bos) else "N/A"
+        non_empty_idx = [i for i, s in enumerate(steps[:idx]) if s.get("token", "") != ""]
+        actual_idx = len(non_empty_idx)
+        
+        actual_id = completion_tokens_without_bos[actual_idx] if actual_idx < len(completion_tokens_without_bos) else "N/A"
+        
+        alignment_ok = (len(tok_ids) == 1 and tok_ids[0] == actual_id) if actual_idx < len(completion_tokens_without_bos) else "N/A"
         alignment_marker = "✓" if alignment_ok == True else "✗" if alignment_ok == False else " "
         
         print(f"Step {idx + 1:>3} | chosen: {repr(tok_text):<20} ids={tok_ids} {alignment_marker} (actual: {actual_id})  ({fmt_prob(tok_lp)})")
@@ -218,7 +242,7 @@ def main():
     # Cleanup
     try:
         session.close()
-    except:
+    except Exception:
         pass
 
 
